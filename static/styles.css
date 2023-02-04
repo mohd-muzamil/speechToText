@@ -1,0 +1,70 @@
+body {
+    background: linear-gradient(to right, #42b7f2, #036534);
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .container {
+    text-align: center;
+  }
+  
+  h1 {
+    color: #fff;
+    text-shadow: 1px 1px #333;
+  }
+  
+  .buttons-container {
+    display: flex;
+    justify-content: space-around;
+    width: 60%;
+    margin-top: 20px;
+  }
+  
+  button {
+    background: #fff;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 16px;
+    box-shadow: 1px 1px #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 2px 2px #333;
+  }
+  
+  button:active {
+    transform: translateY(1px);
+    box-shadow: 1px 1px #333;
+  }
+  
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    color: #fff;
+    text-align: right;
+  }
+  
+  .developer-name {
+    margin-right: 10px;;
+    font-weight: bold;
+  }
+  
+  .card {
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    max-width: 300px;
+    margin: auto;
+    padding: 10px;
+    text-align: center;
+    font-family: cursive;
+    border-radius: 10px;
+    opacity: 0.8;
+  }

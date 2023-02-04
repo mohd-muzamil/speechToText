@@ -1,0 +1,299 @@
+<html>
+    <head>
+        <link rel="stylesheet" href='../static/styles.css' />
+        <title>Voice to Text</title>
+        <!-- <style>
+            html, body {
+                margin: 0!important;
+                padding: 0!important;
+            }
+        </style> -->
+    </head>
+    <body>
+    <div class="container">
+        <h1>Speech to Text</h1>
+
+        <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0"> -->
+        <button id="btn-start-recording">Start Recording</button>
+        <button id="btn-stop-recording" disabled>Stop Recording</button>
+        <button id="btn-clear-audio" disabled>Clear Audio</button>
+        <!-- <button id="btn-download-recording" disabled>Download</button> -->
+
+        <hr>
+        
+        <div>
+            <audio controls autoplay playsinline></audio>
+        </div>
+        <span id="recording-text" style="margin-left: 10px; display: none; color: #aa1504;">recording...</span>
+        
+        <br>
+        <br>
+
+        <!-- random text to read - Meowfacts https://github.com/wh-iterabb-it/meowfacts -->
+        <div class="card">
+            <div style="align-items: center; display: inline-flex;">
+                <img src="../static/assets/funnyCat.jpg" alt="Image" style="width:auto; height: 75px; border-radius: 25%;" >
+                <h2 style="padding-left: 10px;">Meow Facts: </h2>
+            </div>
+            <h2>{{ data['data'][0] }}</h2>
+          </div>
+
+        <div class="footer">
+            <p>Developed by: <span class="developer-name">Muzzu</span></p>
+        </div>
+        <br>
+    </div>
+
+</body>
+    <!-- <script src="../static/RecordRTC.js"></script> -->
+    <script src="https://www.WebRTC-Experiment.com/RecordRTC.js"></script>
+    <script>
+        var audio = document.querySelector('audio');
+        
+        function captureMicrophone(callback) {
+            if(microphone) {
+                callback(microphone);
+                return;
+            }
+        
+            if(typeof navigator.mediaDevices === 'undefined' || !navigator.mediaDevices.getUserMedia) {
+                alert('This browser does not supports WebRTC getUserMedia API.');
+        
+                if(!!navigator.getUserMedia) {
+                    alert('This browser seems supporting deprecated getUserMedia API.');
+                }
+            }
+        
+            navigator.mediaDevices.getUserMedia({
+                audio: isEdge ? true : {
+                    echoCancellation: false
+                }
+            }).then(function(mic) {
+                callback(mic);
+            }).catch(function(error) {
+                alert('Unable to capture your microphone. Please check console logs.');
+                console.error(error);
+            });
+        }
+        
+        function replaceAudio(src) {
+            var newAudio = document.createElement('audio');
+            newAudio.controls = true;
+            newAudio.autoplay = false;
+            newAudio.playsinline = true;
+                    if(src) {
+                newAudio.src = src;
+            }            
+            var parentNode = audio.parentNode;
+            parentNode.innerHTML = '';
+            parentNode.appendChild(newAudio);
+        
+            audio = newAudio;
+        }
+        
+        function stopRecordingCallback() {
+            replaceAudio(URL.createObjectURL(recorder.getBlob()));
+            
+            if(recorder.microphone) {
+                recorder.microphone.stop();
+                recorder.microphone = null;
+            }
+
+            btnStartRecording.disabled = false;
+
+            // saving the recording in the audio folder.
+            // var blob = recorder.getBlob();
+            // var file = new File([blob], getFileName('mp3'), {
+            //     type: 'audio/mp3'
+            // });
+            // invokeSaveAsDialog(file);
+            
+            console.log("sending recorded file to backend for transcription.")
+            var blob = recorder.getBlob();
+            var fileType = blob.type.split('/')[0] || 'audio';
+            console.log(fileType)
+
+                
+            const xhr = new XMLHttpRequest();
+            xhr.open("POST", '/audioToText', true);
+
+            //Send the proper header information along with the request
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            xhr.onreadystatechange = () => { // Call a function when the state changes.
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
+                // Request finished. Do processing here.
+                console.log(xhr.responseText)
+            }
+            }
+            xhr.send("blob="+blob);
+            // xhr.send(new Int8Array());
+            // xhr.send(document);
+
+            // resp = sendBlob(blob)
+            // console.log("response: ", resp)
+            // btnDownloadRecording.disabled = false;
+        }
+
+        function sendBlob(blob) {
+                console.log(blob)
+                // var formData = new FormData();
+                // formData.append('blob', blob);
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/audioToText', true);
+                xhr.send("blob=" +  blob);
+                resp = xhr.responseText
+                return resp
+            }
+         
+        var isEdge = navigator.userAgent.indexOf('Edge') !== -1 && (!!navigator.msSaveOrOpenBlob || !!navigator.msSaveBlob);
+        var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        
+        var recorder; // globally accessible
+        var microphone;
+        
+        var btnStartRecording = document.getElementById('btn-start-recording');
+        var textRecording = document.getElementById('recording-text');
+        var btnStopRecording = document.getElementById('btn-stop-recording');
+        var btnClearAudio = document.getElementById('btn-clear-audio');
+        // var btnDownloadRecording = document.getElementById('btn-download-recording');
+        
+        btnStartRecording.onclick = function() {
+            this.disabled = true;
+            
+            captureMicrophone(function(microphone) {
+                replaceAudio();
+        
+                audio.muted = true;
+                audio.srcObject = microphone;
+            
+                var options = {
+                    type: 'audio',
+                    numberOfAudioChannels: isEdge ? 1 : 2,
+                    checkForInactiveTracks: true,
+                    bufferSize: 16384
+                };
+            
+                if(isSafari || isEdge) {
+                    options.recorderType = StereoAudioRecorder;
+                }
+            
+                if(navigator.platform && navigator.platform.toString().toLowerCase().indexOf('win') === -1) {
+                    options.sampleRate = 48000; // or 44100 or remove this line for default
+                }
+            
+                if(isSafari) {
+                    options.sampleRate = 44100;
+                    options.bufferSize = 4096;
+                    options.numberOfAudioChannels = 2;
+                }
+            
+                if(recorder) {
+                    recorder.destroy();
+                    recorder = null;
+                }
+            
+                recorder = RecordRTC(microphone, options);
+            
+                recorder.startRecording();
+            
+                // release microphone on stopRecording
+                recorder.microphone = microphone;
+
+                btnStopRecording.disabled = false;
+            });
+
+            
+            btnStartRecording.click
+        };
+        
+        btnStopRecording.onclick = function() {
+            this.disabled = true;
+            textRecording.style.display = "none";
+            btnClearAudio.disabled = false;
+            recorder.stopRecording(stopRecordingCallback);
+        };
+
+        btnClearAudio.onclick = function() {
+            this.disabled = true
+            replaceAudio()
+        }
+        
+        // # uploading pre-recorded audio from local
+        // btnDownloadRecording.onclick = function() {
+        //     this.disabled = true;
+        //     if(!recorder || !recorder.getBlob()) return;
+        
+        //     if(isSafari) {
+        //         recorder.getDataURL(function(dataURL) {
+        //             SaveToDisk(dataURL, getFileName('mp3'));
+        //         });
+        //         return;
+        //     }
+        
+        //     var blob = recorder.getBlob();
+        //     var file = new File([blob], getFileName('mp3'), {
+        //         type: 'audio/mp3'
+        //     });
+        //     invokeSaveAsDialog(file);
+        // };
+        
+        // function click(el) {
+        //     el.disabled = false; // make sure that element is not disabled
+        //     var evt = document.createEvent('Event');
+        //     evt.initEvent('click', true, true);
+        //     el.dispatchEvent(evt);
+        // }
+        
+        function getRandomString() {
+            if (window.crypto && window.crypto.getRandomValues && navigator.userAgent.indexOf('Safari') === -1) {
+                var a = window.crypto.getRandomValues(new Uint32Array(3)),
+                    token = '';
+                for (var i = 0, l = a.length; i < l; i++) {
+                    token += a[i].toString(36);
+                }
+                return token;
+            } else {
+                return (Math.random() * new Date().getTime()).toString(36).replace(/\./g, '');
+            }
+        }
+        
+        function getFileName(fileExtension) {
+            var d = new Date();
+            var year = d.getFullYear();
+            var month = d.getMonth();
+            var date = d.getDate();
+            return 'RecordRTC-' + year + month + date + '-' + getRandomString() + '.' + fileExtension;
+        }
+        
+        // function SaveToDisk(fileURL, fileName) {
+        //     // for non-IE
+        //     if (!window.ActiveXObject) {
+        //         var save = document.createElement('a');
+        //         save.href = fileURL;
+        //         save.download = fileName || 'unknown';
+        //         save.style = 'display:none;opacity:0;color:transparent;';
+        //         (document.body || document.documentElement).appendChild(save);
+        
+        //         if (typeof save.click === 'function') {
+        //             save.click();
+        //         } else {
+        //             save.target = '_blank';
+        //             var event = document.createEvent('Event');
+        //             event.initEvent('click', true, true);
+        //             save.dispatchEvent(event);
+        //         }
+        
+        //         (window.URL || window.webkitURL).revokeObjectURL(save.href);
+        //     }
+        
+        //     // for IE
+        //     else if (!!window.ActiveXObject && document.execCommand) {
+        //         var _window = window.open(fileURL, '_blank');
+        //         _window.document.close();
+        //         _window.document.execCommand('SaveAs', true, fileName || fileURL)
+        //         _window.close();
+        //     }
+        // }
+        </script>
+</html>
