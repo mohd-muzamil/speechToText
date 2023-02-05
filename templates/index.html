@@ -21,22 +21,29 @@
 
         <hr>
         
-        <div>
+        <div style="margin-top: 20px;">
             <audio controls autoplay playsinline></audio>
         </div>
         <span id="recording-text" style="margin-left: 10px; display: none; color: #aa1504;">recording...</span>
-        
         <br>
         <br>
 
         <!-- random text to read - Meowfacts https://github.com/wh-iterabb-it/meowfacts -->
-        <div class="card">
-            <div style="align-items: center; display: inline-flex;">
-                <img src="../static/assets/funnyCat.jpg" alt="Image" style="width:auto; height: 75px; border-radius: 25%;" >
-                <h2 style="padding-left: 10px;">Meow Facts: </h2>
+        <div style="display: flex;">
+            <div class="card">
+                <div style="align-items: center; display: inline-flex; margin-top: 5px;">
+                    <img src="../static/assets/funnyCat.jpg" alt="Image" style="width:auto; height: 75px; border-radius: 25%;" >
+                    <h2 style="padding-left: 10px;">Meow Facts: </h2>
+                </div>
+                <h2>{{ data['data'][0] }}</h2>
             </div>
-            <h2>{{ data['data'][0] }}</h2>
-          </div>
+
+            <br>
+            <div class="card">
+                <h1>Transcript:</h1>
+                <span id="transcript" style="display: none;">processing audio...</span>
+            </div>
+        </div>
 
         <div class="footer">
             <p>Developed by: <span class="developer-name">Muzzu</span></p>
@@ -108,10 +115,8 @@
             // });
             // invokeSaveAsDialog(file);
             
-            console.log("sending recorded file to backend for transcription.")
             var blob = recorder.getBlob();
             var fileType = blob.type.split('/')[0] || 'audio';
-            console.log(fileType)
 
                 
             const xhr = new XMLHttpRequest();
@@ -123,9 +128,10 @@
             xhr.onreadystatechange = () => { // Call a function when the state changes.
             if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 200) {
                 // Request finished. Do processing here.
-                console.log(xhr.responseText)
+                processAudio.innerHTML = xhr.responseText
             }
             }
+            processAudio.style.display = "block";
             xhr.send("blob="+blob);
             // xhr.send(new Int8Array());
             // xhr.send(document);
@@ -134,17 +140,6 @@
             // console.log("response: ", resp)
             // btnDownloadRecording.disabled = false;
         }
-
-        function sendBlob(blob) {
-                console.log(blob)
-                // var formData = new FormData();
-                // formData.append('blob', blob);
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', '/audioToText', true);
-                xhr.send("blob=" +  blob);
-                resp = xhr.responseText
-                return resp
-            }
          
         var isEdge = navigator.userAgent.indexOf('Edge') !== -1 && (!!navigator.msSaveOrOpenBlob || !!navigator.msSaveBlob);
         var isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
@@ -153,13 +148,16 @@
         var microphone;
         
         var btnStartRecording = document.getElementById('btn-start-recording');
-        var textRecording = document.getElementById('recording-text');
         var btnStopRecording = document.getElementById('btn-stop-recording');
         var btnClearAudio = document.getElementById('btn-clear-audio');
+        var textRecording = document.getElementById('recording-text');
+        var processAudio = document.getElementById('transcript');
         // var btnDownloadRecording = document.getElementById('btn-download-recording');
         
         btnStartRecording.onclick = function() {
             this.disabled = true;
+            textRecording.style.display = "block";
+            processAudio.innerHTML = ""
             
             captureMicrophone(function(microphone) {
                 replaceAudio();
